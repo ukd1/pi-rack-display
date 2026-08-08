@@ -10,6 +10,7 @@ type Snapshot struct {
 	Ready       bool
 	Cordoned    bool
 	HasNode     bool
+	NodeStale   bool
 
 	CPUMilli         int64
 	CPUCapacityMilli int64
@@ -23,10 +24,12 @@ type Snapshot struct {
 	PodsTotal int
 	PodsBad   []string
 	HasPods   bool
+	PodsStale bool
 
 	ClusterReady int
 	ClusterTotal int
 	HasCluster   bool
+	ClusterStale bool
 
 	Warnings []string
 }

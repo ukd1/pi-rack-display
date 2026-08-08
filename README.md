@@ -5,12 +5,18 @@ Kubernetes node dashboards. One small Go binary contains both the display
 daemon and a kubelet device plugin, and GitHub Actions publishes the arm64
 container to `ghcr.io/ukd1/pi-rack-display`.
 
-Each display rotates through:
+Every page has the same status header: the local node name and state on the
+left, and the number of Ready Kubernetes nodes on the right (`NODES 4/4`). The
+body rotates through two deliberately distinct views:
 
-- node name, IP, Ready state, and cordon state;
-- CPU, memory, and SoC temperature;
-- ready and unhealthy pods on that node; and
-- cluster node health.
+- active pod count and any unready pods on this node; and
+- CPU, memory, and SoC temperature.
+
+The node-state square is green when the node is Ready and schedulable, yellow
+when its state is unknown or it is cordoned, and red when it is not Ready. A
+yellow `C` beside the node name also identifies a cordoned node. Cluster
+readiness appears only in the header; the pod view uses a count and state
+instead of another fraction.
 
 ## Architecture
 
@@ -42,8 +48,8 @@ dtparam=i2c_arm=on
 
 UCTRONICS recommends a 400 kHz bus with
 `dtparam=i2c_arm=on,i2c_arm_baudrate=400000`. The daemon also works at the
-default 100 kHz and sends only the smallest changed screen rectangle, so the
-faster clock is optional.
+default 100 kHz and sends only the smallest changed screen rectangle. The
+faster clock gives the rotating dashboard more transfer headroom.
 
 ## Deploy
 
@@ -70,8 +76,12 @@ No image pull secret is needed because the GHCR package is public.
 go test ./...
 go vet ./...
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build ./cmd/pi-rack-display
+go run ./cmd/pi-rack-display-preview -output /tmp/pi-rack-display-preview
 kubectl kustomize deploy | kubectl create --dry-run=client --validate=false -f -
 ```
+
+The preview command writes deterministic healthy and degraded 160x80 PNGs for
+both pages so layout changes can be inspected without display hardware.
 
 The Linux display driver is transport-injected and tested without hardware.
 It sends RGB565 pixels through the rack's I2C bridge in at-most-160-byte bursts,

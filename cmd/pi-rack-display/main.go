@@ -185,6 +185,7 @@ func mergeSnapshot(previous, current model.Snapshot) model.Snapshot {
 		current.CPUCapacityMilli = previous.CPUCapacityMilli
 		current.MemoryCapacity = previous.MemoryCapacity
 		current.HasNode = true
+		current.NodeStale = true
 	}
 	if !current.HasMetrics && previous.HasMetrics {
 		current.CPUMilli = previous.CPUMilli
@@ -200,11 +201,13 @@ func mergeSnapshot(previous, current model.Snapshot) model.Snapshot {
 		current.PodsTotal = previous.PodsTotal
 		current.PodsBad = append([]string(nil), previous.PodsBad...)
 		current.HasPods = true
+		current.PodsStale = true
 	}
 	if !current.HasCluster && previous.HasCluster {
 		current.ClusterReady = previous.ClusterReady
 		current.ClusterTotal = previous.ClusterTotal
 		current.HasCluster = true
+		current.ClusterStale = true
 	}
 	return current
 }
