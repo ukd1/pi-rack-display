@@ -7,4 +7,4 @@ resources:
   - display.yaml
 images:
   - name: ghcr.io/ukd1/pi-rack-display
-    newTag: latest
+    digest: sha256:af290fe51596b097d65c58b26bd4079f255740e0b37271b4fa0891ee0c1bd330
