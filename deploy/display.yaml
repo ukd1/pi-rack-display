@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pi-rack-display
+  namespace: pi-rack-display
+  labels:
+    app.kubernetes.io/name: pi-rack-display
+    app.kubernetes.io/component: display
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pi-rack-display
+      app.kubernetes.io/component: display
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pi-rack-display
+        app.kubernetes.io/component: display
+    spec:
+      os:
+        name: linux
+      serviceAccountName: pi-rack-display
+      automountServiceAccountToken: true
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 10
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: arm64
+        uctronics-rm0004: "true"
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        supplementalGroups: [20]
+        supplementalGroupsPolicy: Strict
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: display
+          image: ghcr.io/ukd1/pi-rack-display:latest
+          imagePullPolicy: IfNotPresent
+          args: ["display"]
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: PAGE_INTERVAL
+              value: 10s
+            - name: SAMPLE_INTERVAL
+              value: 15s
+          ports:
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            periodSeconds: 3
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+              uctronics.com/rm0004: 1
+            limits:
+              cpu: 100m
+              memory: 96Mi
+              uctronics.com/rm0004: 1

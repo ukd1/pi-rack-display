@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: uctronics-rm0004-device-plugin
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: pi-rack-display
+    app.kubernetes.io/component: device-plugin
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pi-rack-display
+      app.kubernetes.io/component: device-plugin
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pi-rack-display
+        app.kubernetes.io/component: device-plugin
+    spec:
+      os:
+        name: linux
+      priorityClassName: system-node-critical
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 10
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: arm64
+        uctronics-rm0004: "true"
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+      containers:
+        - name: device-plugin
+          image: ghcr.io/ukd1/pi-rack-display:latest
+          imagePullPolicy: IfNotPresent
+          args: ["device-plugin"]
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 48Mi
+          volumeMounts:
+            - name: kubelet-device-plugins
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: i2c
+              mountPath: /dev/i2c-1
+              readOnly: true
+            - name: temperature
+              mountPath: /sys/class/thermal/thermal_zone0/temp
+              readOnly: true
+      volumes:
+        - name: kubelet-device-plugins
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+            type: Directory
+        - name: i2c
+          hostPath:
+            path: /dev/i2c-1
+            type: CharDevice
+        - name: temperature
+          hostPath:
+            path: /sys/class/thermal/thermal_zone0/temp
+            type: File
